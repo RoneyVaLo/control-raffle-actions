@@ -20,7 +20,7 @@ export default function ActionDetailPage() {
   const fetchAction = async (num: string) => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/raffle-actions/${num}`)
+      const res = await fetch(`/api/raffle-actions/number/${num}`)
       if (!res.ok) {
         setAction(null)
         return
