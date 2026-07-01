@@ -32,24 +32,3 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json(mapped)
 }
-
-export async function POST(req: NextRequest) {
-  const body = await req.json()
-  const { full_name, section_id } = body
-
-  if (!full_name?.trim() || !section_id) {
-    return NextResponse.json(
-      { error: 'Nombre y sección son requeridos' },
-      { status: 400 }
-    )
-  }
-
-  const { data, error } = await supabase
-    .from('students')
-    .insert({ full_name: full_name.trim(), section_id })
-    .select()
-    .single()
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json(data, { status: 201 })
-}

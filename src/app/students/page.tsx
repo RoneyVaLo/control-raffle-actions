@@ -3,12 +3,10 @@
 import { Suspense, useState, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { DataTable } from '@/components/ui/data-table'
-import { FormDialog } from '@/components/ui/form-dialog'
-import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Button } from '@/components/ui/button'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { SearchInput } from '@/components/ui/search-input'
-import { Plus, RotateCcw } from 'lucide-react'
+import { RotateCcw } from 'lucide-react'
 import { getStudentColumns } from '@/features/students/page/columns'
 import type { Section, StudentWithSection } from '@/types'
 
@@ -19,10 +17,6 @@ function StudentsContent() {
   const [sections, setSections] = useState<Section[]>([])
   const [loading, setLoading] = useState(true)
   const [actionCounts, setActionCounts] = useState<Record<string, number>>({})
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [editingStudent, setEditingStudent] = useState<StudentWithSection | null>(null)
-  const [deleteConfirm, setDeleteConfirm] = useState<StudentWithSection | null>(null)
-  const [deleting, setDeleting] = useState(false)
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '')
   const [sectionFilter, setSectionFilter] = useState('')
 
@@ -58,49 +52,11 @@ function StudentsContent() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  const handleCreate = async (values: Record<string, string>) => {
-    await fetch('/api/students', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(values),
-    })
-    await fetchData()
-  }
-
-  const handleEdit = async (values: Record<string, string>) => {
-    if (!editingStudent) return
-    await fetch(`/api/students/${editingStudent.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(values),
-    })
-    setEditingStudent(null)
-    await fetchData()
-  }
-
-  const handleDelete = async () => {
-    if (!deleteConfirm) return
-    setDeleting(true)
-    try {
-      await fetch(`/api/students/${deleteConfirm.id}`, { method: 'DELETE' })
-      setDeleteConfirm(null)
-      await fetchData()
-    } finally {
-      setDeleting(false)
-    }
-  }
-
   const columns = getStudentColumns(actionCounts)
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Estudiantes</h1>
-        <Button onClick={() => { setEditingStudent(null); setDialogOpen(true) }}>
-          <Plus className="mr-1 h-4 w-4" />
-          Nuevo Estudiante
-        </Button>
-      </div>
+      <h1 className="text-2xl font-bold">Estudiantes</h1>
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="w-full sm:w-64">
@@ -137,29 +93,6 @@ function StudentsContent() {
         loading={loading}
         emptyMessage="No hay estudiantes registrados"
         onRowClick={(student) => router.push(`/students/${student.id}`)}
-      />
-
-      <FormDialog
-        open={dialogOpen || !!editingStudent}
-        onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditingStudent(null) }}
-        title={editingStudent ? 'Editar Estudiante' : 'Nuevo Estudiante'}
-        fields={[
-          { name: 'full_name', label: 'Nombre completo', type: 'text', placeholder: 'Nombre del estudiante', required: true },
-          { name: 'section_id', label: 'Sección', type: 'select', required: true, options: sections.map((s) => ({ value: s.id, label: s.name })) },
-        ]}
-        initialValues={editingStudent ? { full_name: editingStudent.full_name, section_id: editingStudent.section_id } : {}}
-        onSubmit={editingStudent ? handleEdit : handleCreate}
-        submitLabel={editingStudent ? 'Guardar cambios' : 'Crear'}
-      />
-
-      <ConfirmDialog
-        open={!!deleteConfirm}
-        onOpenChange={(open) => { if (!open) setDeleteConfirm(null) }}
-        title="Eliminar Estudiante"
-        description={`¿Estás seguro de eliminar a "${deleteConfirm?.full_name}"? Se eliminarán también todas sus acciones.`}
-        onConfirm={handleDelete}
-        variant="destructive"
-        loading={deleting}
       />
     </div>
   )
