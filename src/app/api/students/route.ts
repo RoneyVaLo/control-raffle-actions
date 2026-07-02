@@ -18,16 +18,26 @@ export async function GET(req: NextRequest) {
     dbQuery = dbQuery.ilike('full_name', `%${query}%`)
   }
 
-  const { data, error } = await dbQuery.order('full_name')
+  const [studentsRes, actionsRes] = await Promise.all([
+    dbQuery.order('full_name'),
+    supabase.from('raffle_actions').select('student_id'),
+  ])
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (studentsRes.error) return NextResponse.json({ error: studentsRes.error.message }, { status: 500 })
+  if (actionsRes.error) return NextResponse.json({ error: actionsRes.error.message }, { status: 500 })
 
-  const mapped = data.map((s: any) => ({
+  const actionCounts: Record<string, number> = {}
+  for (const a of (actionsRes.data ?? [])) {
+    actionCounts[a.student_id] = (actionCounts[a.student_id] || 0) + 1
+  }
+
+  const mapped = (studentsRes.data ?? []).map((s: any) => ({
     id: s.id,
     full_name: s.full_name,
     section_id: s.section_id,
     section_name: s.sections?.name,
     created_at: s.created_at,
+    action_count: actionCounts[s.id] || 0,
   }))
 
   return NextResponse.json(mapped)

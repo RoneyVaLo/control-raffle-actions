@@ -27,20 +27,27 @@ function StudentsContent() {
       if (sectionFilter) params.set('section_id', sectionFilter)
       if (searchQuery) params.set('q', searchQuery)
 
-      const [studentsRes, sectionsRes, actionsRes] = await Promise.all([
+      const [studentsRes, sectionsRes] = await Promise.all([
         fetch(`/api/students?${params}`),
         fetch('/api/sections'),
-        fetch('/api/raffle-actions?pageSize=5000'),
       ])
       const studentsData = await studentsRes.json()
       const sectionsData = await sectionsRes.json()
-      const actionsData = await actionsRes.json()
+
+      if (!Array.isArray(studentsData) || !Array.isArray(sectionsData)) {
+        console.error("Error al obtener datos:", { studentsData, sectionsData })
+        setStudents([])
+        setSections([])
+        setActionCounts({})
+        return
+      }
+
       setStudents(studentsData)
       setSections(sectionsData)
 
       const counts: Record<string, number> = {}
-      actionsData.data?.forEach((a: any) => {
-        counts[a.student_id] = (counts[a.student_id] || 0) + 1
+      studentsData.forEach((s: any) => {
+        counts[s.id] = s.action_count ?? 0
       })
       setActionCounts(counts)
     } catch (e) {
