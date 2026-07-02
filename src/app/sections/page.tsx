@@ -18,30 +18,28 @@ export default function SectionsPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [sectionsRes, actionsRes] = await Promise.all([
-        fetch("/api/sections"),
-        fetch("/api/raffle-actions?pageSize=5000"),
-      ]);
-      const sectionsData = await sectionsRes.json();
-      const actionsData = await actionsRes.json();
+      const res = await fetch("/api/sections");
+      const data = await res.json();
 
-      const counts: Record<string, number> = {};
-      sectionsData.forEach((s: Section) => {
-        const res = actionsData.data?.filter((a: any) => a.section_id === s.id);
-        counts[s.id] = res?.length ?? 0;
-      });
-      setActionCounts(counts);
+      if (!Array.isArray(data)) {
+        console.error("Error al obtener secciones:", data);
+        setSections([]);
+        setStudentCounts({});
+        setActionCounts({});
+        return;
+      }
 
       const sCounts: Record<string, number> = {};
-      const studentsRes = await fetch("/api/students");
-      const studentsData = await studentsRes.json();
-      studentsData.forEach((s: any) => {
-        sCounts[s.section_id] = (sCounts[s.section_id] || 0) + 1;
+      const aCounts: Record<string, number> = {};
+      data.forEach((s: any) => {
+        sCounts[s.id] = s.student_count ?? 0;
+        aCounts[s.id] = s.action_count ?? 0;
       });
       setStudentCounts(sCounts);
+      setActionCounts(aCounts);
 
-      const filtered = sectionsData.filter(
-        (s: Section) => (sCounts[s.id] || 0) > 0,
+      const filtered = data.filter(
+        (s: any) => (s.student_count ?? 0) > 0,
       );
       setSections(filtered);
     } catch (e) {

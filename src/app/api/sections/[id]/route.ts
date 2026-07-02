@@ -29,10 +29,12 @@ export async function GET(
   let returnedActions = 0
   let totalCollected = 0
 
+  let studentActionCounts: Record<string, number> = {}
+
   if (studentIds.length > 0) {
     const { data: actions } = await supabase
       .from('raffle_actions')
-      .select('status, payment_method')
+      .select('student_id, status, payment_method')
       .in('student_id', studentIds)
 
     if (actions) {
@@ -44,12 +46,21 @@ export async function GET(
         actions.filter((a) => a.status === 'PAID' && a.payment_method === 'SINPE').length *
           2500 +
         actions.filter((a) => a.status === 'PAID' && a.payment_method === 'CASH').length * 2500
+
+      actions.forEach((a) => {
+        studentActionCounts[a.student_id] = (studentActionCounts[a.student_id] || 0) + 1
+      })
     }
   }
 
+  const studentsWithCounts = (students ?? []).map((s) => ({
+    ...s,
+    action_count: studentActionCounts[s.id] || 0,
+  }))
+
   return NextResponse.json({
     ...section,
-    students: students ?? [],
+    students: studentsWithCounts,
     total_actions: totalActions,
     paid_actions: paidActions,
     pending_actions: pendingActions,

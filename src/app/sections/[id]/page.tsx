@@ -75,7 +75,7 @@ export default function SectionDetailPage() {
         data={(data.students ?? []).map((s: any) => ({
           id: s.id,
           full_name: s.full_name,
-          action_count: 0,
+          action_count: s.action_count || 0,
         }))}
         keyExtractor={(s) => s.id}
         emptyMessage="No hay estudiantes en esta sección"
