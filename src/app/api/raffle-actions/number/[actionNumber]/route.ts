@@ -12,25 +12,54 @@ export async function GET(
     return NextResponse.json({ error: 'Número de acción inválido' }, { status: 400 })
   }
 
-  const { data, error } = await supabase
+  const { data: action, error: actionError } = await supabase
     .from('raffle_actions')
-    .select('*, students!inner(full_name, section_id, sections!inner(name))')
+    .select('*')
     .eq('action_number', num)
     .single()
 
-  if (error) return NextResponse.json({ error: 'Acción no encontrada' }, { status: 404 })
+  if (actionError) return NextResponse.json({ error: 'Acción no encontrada' }, { status: 404 })
+
+  let studentName: string | undefined
+  let sectionName: string | undefined
+  let sectionId: string | undefined
+
+  if (action.student_id) {
+    const { data: student } = await supabase
+      .from('students')
+      .select('full_name, section_id')
+      .eq('id', action.student_id)
+      .single()
+
+    if (student) {
+      studentName = student.full_name
+      sectionId = student.section_id
+
+      if (student.section_id) {
+        const { data: section } = await supabase
+          .from('sections')
+          .select('name')
+          .eq('id', student.section_id)
+          .single()
+
+        if (section) {
+          sectionName = section.name
+        }
+      }
+    }
+  }
 
   return NextResponse.json({
-    id: data.id,
-    action_number: data.action_number,
-    student_id: data.student_id,
-    status: data.status,
-    payment_method: data.payment_method,
-    assigned_at: data.assigned_at,
-    paid_at: data.paid_at,
-    updated_at: data.updated_at,
-    student_name: (data as any).students?.full_name,
-    section_name: (data as any).students?.sections?.name,
-    section_id: (data as any).students?.section_id,
+    id: action.id,
+    action_number: action.action_number,
+    student_id: action.student_id,
+    status: action.status,
+    payment_method: action.payment_method,
+    assigned_at: action.assigned_at,
+    paid_at: action.paid_at,
+    updated_at: action.updated_at,
+    student_name: studentName,
+    section_name: sectionName,
+    section_id: sectionId,
   })
 }
